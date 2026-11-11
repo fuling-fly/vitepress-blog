@@ -1,0 +1,29 @@
+/* 只做少量视觉微调，尽量不破坏默认主题的响应式表现 */
+
+:root {
+  --vp-c-brand-1: #3451b2;
+  --vp-c-brand-2: #3a5ccc;
+  --vp-c-brand-3: #5672cd;
+  --vp-c-brand-soft: rgba(100, 108, 255, 0.14);
+}
+
+/* 首页 hero 下方加一点留白，避免内容贴边 */
+.VPHome {
+  padding-bottom: 64px;
+}
+
+/* 文章正文里的图片统一圆角 + 细边框，占位图看起来更规整 */
+.vp-doc img {
+  border-radius: 8px;
+  border: 1px solid var(--vp-c-divider);
+}
+
+/* 文章内的表格允许横向滚动，窄屏不撑破布局 */
+.vp-doc table {
+  display: table;
+  width: 100%;
+}
+
+.vp-doc div[class*='language-'] {
+  border-radius: 8px;
+}
