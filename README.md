@@ -8,6 +8,7 @@
 - 技术栈：VitePress 1.6.4 + Vue 3.5.45
 - 包管理器：npm（`package-lock.json` 随仓库提交）
 - 内容目录：`docs/`
+- 内容来源：Obsidian vault（私密，默认 `H:\code\vuepresshopelocalll\2026-11-12\knowledge-base`），只通过 `publish/` 单向同步，详见 [PUBLISHING.md](PUBLISHING.md)
 
 > 与旧 VuePress 站点的关系：两个项目各自有独立的 `package.json`、依赖目录、构建产物和 git 历史。本项目不读写 `vuepresshopelocalll` 的源文件，两者部署路径也不冲突。
 
@@ -18,8 +19,10 @@ vitepress-blog/
 ├─ package.json
 ├─ package-lock.json
 ├─ README.md
+├─ PUBLISHING.md                    # Obsidian vault → 站点 的发布流程
 ├─ .gitignore
 ├─ .github/workflows/deploy.yml     # GitHub Pages 部署
+├─ scripts/publish.mjs              # 发布脚本（单向读取 vault 的 publish/）
 └─ docs/                            # 站点根目录
    ├─ index.md                      # 首页：hero + 最新一篇
    ├─ about.md                      # 关于 / 写作约定
@@ -54,9 +57,11 @@ vitepress-blog/
 
 ```bash
 npm install          # 首次安装依赖
-npm run docs:dev     # 本地开发，默认 http://localhost:5173
+npm run docs:dev     # 本地开发，http://localhost:5173/vitepress-blog/
 npm run docs:build   # 构建到 docs/.vitepress/dist
-npm run docs:preview # 预览构建产物，默认 http://localhost:4173
+npm run docs:preview # 预览构建产物，http://localhost:4173/vitepress-blog/
+npm run publish:dry  # 预览将从 Obsidian vault 发布哪些笔记
+npm run publish      # 实际发布（转双链、复制附件、补 frontmatter、敏感拦截）
 ```
 
 ## 内容约定
