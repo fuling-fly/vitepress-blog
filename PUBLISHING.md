@@ -2,10 +2,10 @@
 
 单向链路：**只从 vault 的 `publish/` 读取**，站点永远不往 vault 写。
 
-- vault 路径：`H:\code\vuepresshopelocalll\2026-11-12\knowledge-base`
-  （环境策略禁止写入仓库外路径，故放在工作区内；父仓库 `.gitignore` 已排除整个目录）
-- 站点仓库：`H:\code\vuepresshopelocalll\2026-11-12\vitepress-blog`
+- vault 路径：由项目根目录的 `publish.config.json` 的 `vaultPath` 决定，**搬迁后只改这一行**
+- 站点仓库：当前工作目录，可整体移动
 - 脚本：`scripts/publish.mjs`
+- 路径优先级：`--vault` 参数 > 环境变量 `BLOG_VAULT` > `publish.config.json` > 脚本内置默认值
 
 ## 1. 在 Obsidian 里写到什么程度
 
@@ -41,8 +41,10 @@ npm run publish         # 实际发布：写入 docs/posts/YYYY-MM/、复制附�
 ```powershell
 node scripts/publish.mjs --dry-run
 node scripts/publish.mjs --force          # 覆盖已存在的目标文件
-node scripts/publish.mjs --vault "D:\其他\vault"
+node scripts/publish.mjs --vault "D:\其他\vault"   # 临时指定 vault，不读配置文件
 ```
+
+临时切换也可以设环境变量：`$env:BLOG_VAULT = "D:\其他\vault"`（优先级低于 `--vault`，高于 `publish.config.json`）。
 
 ### 脚本做了什么
 
@@ -89,4 +91,34 @@ npm run docs:dev        # 本地预览 http://localhost:5173/vitepress-blog/
 | 日志出现「缺少 summary」 | 已置空，补上 60 字摘要后可读性更好 |
 | 脚本退出码 1 | 有文件被敏感规则拒绝，看日志里的文件名与命中原因 |
 | 改了 vault 但站点没变 | 先 `npm run publish`，再 `npm run docs:dev` 或在构建后再推送 |
-| 想换 vault 位置 | `--vault <路径>` 或环境变量 `OBSIDIAN_VAULT` |
+| 想换 vault 位置 | 改 `publish.config.json` 的 `vaultPath`；临时切换用 `--vault` 或环境变量 `BLOG_VAULT` |
+
+## 7. 搬迁 / 换机器
+
+站点和 vault 都能整体移动，**不需要改任何代码**，只改 `publish.config.json` 一行。
+
+```powershell
+# 1. 先停掉本地 dev 服务器，避免文件被占用
+Get-CimInstance Win32_Process -Filter "Name='node.exe'" |
+  Where-Object { $_.CommandLine -like '*vitepress*dev docs*' } |
+  ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
+
+# 2. 用 Move-Item 搬运（不要先复制再删，否则容易丢 .git / .github / node_modules）
+New-Item -ItemType Directory -Path "E:\vitepre-base" -Force | Out-Null
+Move-Item "<站点目录>" "E:\vitepre-base\vitepress-blog"
+Move-Item "<vault 目录>" "E:\vitepre-base\knowledge-base"
+
+# 3. 只改这一行（E:\vitepre-base\vitepress-blog\publish.config.json）
+#    { "vaultPath": "E:\\vitepre-base\\knowledge-base" }
+
+# 4. 在新位置验证
+cd E:\vitepre-base\vitepress-blog
+npm run publish:dry
+npm run docs:build
+```
+
+补充说明：
+
+- GitHub Pages 部署与本地路径无关，`base` 仍是 `/vitepress-blog/`；
+- `node_modules` 可复用，同平台不必重装；换机器时删掉它再 `npm ci`；
+- 若脚本报「找不到 vault 目录」且路径来源显示 `publish.config.json`，就是这一行没改。

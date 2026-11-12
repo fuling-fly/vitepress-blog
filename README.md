@@ -2,13 +2,12 @@
 
 「每天和 AI 的精彩内容」——独立 VitePress 博客。
 
-- 位置：`H:\code\vuepresshopelocalll\2026-11-12\vitepress-blog`
-  - 原计划放在仓库外的 `H:\code\vitepress-blog`，但当前环境的文件写入策略会拒绝对该路径的写入（`EPERM`，Vite 写临时配置文件时即失败），因此放在工作区内，并已在该目录 `git init` 成独立仓库。
-  - 父仓库（VuePress）的 `.gitignore` 里已追加 `2026-11-12/vitepress-blog/`，避免被误提交。
+- 位置：独立目录，自带 `.git`，**整个目录可以随意移动**（例如搬到 `E:\vitepre-base\vitepress-blog`）
+  - 移动后唯一需要改的是 `publish.config.json` 里的 `vaultPath` 一行，代码无需改动。
 - 技术栈：VitePress 1.6.4 + Vue 3.5.45
 - 包管理器：npm（`package-lock.json` 随仓库提交）
 - 内容目录：`docs/`
-- 内容来源：Obsidian vault（私密，默认 `H:\code\vuepresshopelocalll\2026-11-12\knowledge-base`），只通过 `publish/` 单向同步，详见 [PUBLISHING.md](PUBLISHING.md)
+- 内容来源：Obsidian vault（私密），路径由 `publish.config.json` 的 `vaultPath` 决定，只通过 `publish/` 单向同步，详见 [PUBLISHING.md](PUBLISHING.md)
 
 > 与旧 VuePress 站点的关系：两个项目各自有独立的 `package.json`、依赖目录、构建产物和 git 历史。本项目不读写 `vuepresshopelocalll` 的源文件，两者部署路径也不冲突。
 
@@ -20,6 +19,7 @@ vitepress-blog/
 ├─ package-lock.json
 ├─ README.md
 ├─ PUBLISHING.md                    # Obsidian vault → 站点 的发布流程
+├─ publish.config.json              # vaultPath：vault 在哪，搬完只改这一行
 ├─ .gitignore
 ├─ .github/workflows/deploy.yml     # GitHub Pages 部署
 ├─ scripts/publish.mjs              # 发布脚本（单向读取 vault 的 publish/）
@@ -63,6 +63,17 @@ npm run docs:preview # 预览构建产物，http://localhost:4173/vitepress-blog
 npm run publish:dry  # 预览将从 Obsidian vault 发布哪些笔记
 npm run publish      # 实际发布（转双链、复制附件、补 frontmatter、敏感拦截）
 ```
+
+### 搬迁 / 换位置
+
+整个目录可以直接 `Move-Item` 到任意位置（保留 `.git`、`.github`、`node_modules`），站点代码无需改动：
+
+1. 先停掉本地 dev 服务器；
+2. 移动站点目录与 vault 目录；
+3. 只改 `publish.config.json` 的 `vaultPath` 一行；
+4. 在新位置跑 `npm run publish:dry` 与 `npm run docs:build` 验证。
+
+GitHub Pages 部署与本地路径无关，`base` 仍是 `/vitepress-blog/`。详见 [PUBLISHING.md](PUBLISHING.md#_7-搬迁--换机器)。
 
 ## 内容约定
 

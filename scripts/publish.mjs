@@ -20,16 +20,44 @@ const docsDir = path.join(projectRoot, 'docs')
 const postsDir = path.join(docsDir, 'posts')
 const assetsOutDir = path.join(docsDir, 'public', 'publish-assets')
 
-// vault 默认位置（环境策略不允许放仓库外，故放在工作区内，父仓库已忽略）
+// vault 路径的兜底默认值；正常应通过 publish.config.json 配置
 const DEFAULT_VAULT = 'H:\\code\\vuepresshopelocalll\\2026-11-12\\knowledge-base'
 
 const args = process.argv.slice(2)
 const dryRun = args.includes('--dry-run')
 const force = args.includes('--force')
 const vaultArgIndex = args.indexOf('--vault')
-const vaultDir = path.resolve(
-  vaultArgIndex !== -1 && args[vaultArgIndex + 1] ? args[vaultArgIndex + 1] : process.env.OBSIDIAN_VAULT || DEFAULT_VAULT
-)
+
+/** 读取项目根目录的 publish.config.json */
+function readConfigVault() {
+  const configPath = path.join(projectRoot, 'publish.config.json')
+  if (!fs.existsSync(configPath)) return null
+  try {
+    const parsed = JSON.parse(fs.readFileSync(configPath, 'utf-8'))
+    return parsed.vaultPath ? String(parsed.vaultPath) : null
+  } catch (error) {
+    console.error(`publish.config.json 解析失败：${error.message}`)
+    console.error('请检查该文件是否为合法 JSON，例如 { "vaultPath": "E:\\\\vitepre-base\\\\knowledge-base" }')
+    process.exit(1)
+  }
+}
+
+/** 优先级：--vault > BLOG_VAULT 环境变量 > publish.config.json > 内置默认值 */
+function resolveVault() {
+  const fromArg = vaultArgIndex !== -1 ? args[vaultArgIndex + 1] : null
+  if (fromArg) return { dir: path.resolve(fromArg), from: '--vault 参数' }
+
+  if (process.env.BLOG_VAULT) {
+    return { dir: path.resolve(process.env.BLOG_VAULT), from: '环境变量 BLOG_VAULT' }
+  }
+
+  const fromConfig = readConfigVault()
+  if (fromConfig) return { dir: path.resolve(fromConfig), from: 'publish.config.json' }
+
+  return { dir: path.resolve(DEFAULT_VAULT), from: '脚本内置默认值' }
+}
+
+const { dir: vaultDir, from: vaultSource } = resolveVault()
 const publishDir = path.join(vaultDir, 'publish')
 
 const IMAGE_EXT = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.avif'])
@@ -191,12 +219,25 @@ function isInsidePublish(file) {
 }
 
 function main() {
+  if (!fs.existsSync(vaultDir)) {
+    console.error(`找不到 vault 目录：${vaultDir}`)
+    console.error(`路径来源：${vaultSource}`)
+    if (vaultSource === 'publish.config.json') {
+      console.error('请检查 publish.config.json 的 vaultPath 是否正确（例如搬迁后忘了改这一行）')
+    } else {
+      console.error('请检查 --vault 参数、环境变量 BLOG_VAULT，或 publish.config.json 的 vaultPath')
+    }
+    process.exit(1)
+  }
+
   if (!fs.existsSync(publishDir)) {
-    console.error(`找不到 vault 的 publish 目录：${publishDir}`)
+    console.error(`vault 存在，但缺少 publish 目录：${publishDir}`)
+    console.error('请确认该路径确实是 Obsidian vault，且其中包含 publish/ 子目录')
     process.exit(1)
   }
 
   log(`vault:  ${vaultDir}`)
+  log(`来源:   ${vaultSource}`)
   log(`模式:   ${dryRun ? 'dry-run（不写文件）' : '正式发布'}${force ? '，覆盖已有文件' : '，已存在则跳过'}`)
   log('')
 
